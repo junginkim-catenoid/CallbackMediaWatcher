@@ -45,9 +45,9 @@ type Dto struct {
 }
 
 type ContentDto struct {
-	Error   int           `json:"error"`
-	Message string        `json:"message"`
-	Result  []WatcherFile `json:"result"`
+	Error   int         `json:"error"`
+	Message string      `json:"message"`
+	Result  WatcherFile `json:"result"`
 }
 
 type ContentsDto struct {
@@ -61,7 +61,7 @@ type WatcherFile struct {
 	ErrorDetail                string `json:"error_detail"`
 	ContentProviderKey         string `json:"content_provider_key"`
 	Key                        string `json:"key"`
-	MediaContentId             string `json:"media_content_id"`
+	MediaContentId             int    `json:"media_content_id"`
 	ContentPath                string `json:"content_path"`
 	UploadPath                 string `json:"upload_path"`
 	IsAudioFile                int    `json:"is_audio_file"`
@@ -69,6 +69,13 @@ type WatcherFile struct {
 	SnapshotPath               string `json:"snapshot_path"`
 	PhysicalPath               string `json:"physical_path"`
 	DeleteWatcherFileUploadUrl string `json:"delete_watcher_file_upload_url"`
+	Poster                     Poster `json:"poster"`
+}
+
+type Poster struct {
+	Second int `json:"second"`
+	width  int `json:"width"`
+	height int `json:"height"`
 }
 
 func PostRegisterHandler(w http.ResponseWriter, r *http.Request) {
@@ -101,37 +108,70 @@ func PostRegisterHandler(w http.ResponseWriter, r *http.Request) {
 		log.Fatal("dd")
 	}
 
-	contentDtos := ContentDto{Error: 0, Message: "ok", Result: data}
+	data[0].Key = "uploadKey"
+	data[0].ContentPath = "/jungin-kim"
 
-	fmt.Println(contentDtos)
-	//strResult, err := json.Marshal(result)
-	//if err != nil {
-	//	log.Fatal("d")
-	//}
+	var watcherFiles []ContentDto
+
+	contentDto := ContentDto{Error: 0, Message: "ok", Result: data[0]}
+
+	watcherFiles = append(watcherFiles, contentDto)
+	//watcherFiles[0] = contentDto
+
+	dto.Result = ContentsDto{ErrorCode: 0, ErrorDetail: "", WatcherFiles: watcherFiles}
+
+	fmt.Println(contentDto)
 
 	json.NewEncoder(w).Encode(dto)
-	//json.NewEncoder(w).Encode(watcherFiels)
 
 	return
 }
 
 func PostCompleteHandler(w http.ResponseWriter, r *http.Request) {
-	headerContentTtype := r.Header.Get("Content-Type")
-	if strings.Contains("application/x-www-form-urlencoded;", headerContentTtype) {
-		w.WriteHeader(http.StatusUnsupportedMediaType)
-		return
+	var watcher WatcherRequest
+	var reqWatcher ReqWatcherFiles
+	var dto Dto
+
+	//headerContentType := r.Header.Get("Content-Type")
+	//if strings.Contains("application/x-www-form-urlencoded;", headerContentType) {
+	//	w.WriteHeader(http.StatusUnsupportedMediaType)
+	//	return
+	//}
+
+	err := r.ParseForm()
+	if err != nil {
+		log.Fatal(err.Error())
 	}
-	r.ParseForm()
-	fmt.Println("\nrequest.PostForm::")
-	for key, value := range r.PostForm {
-		fmt.Printf("Key:%s, Value:%s\n", key, value)
+	watcher.APIKey = r.FormValue("api_key")
+	watcher.APIReference = r.FormValue("api_reference")
+
+	err = json.Unmarshal([]byte(r.FormValue("watcher_files")), &reqWatcher)
+	if err != nil {
+		log.Fatal("ee")
 	}
 
-	json.NewEncoder(w).Encode(map[string]string{
-		"message": "ok",
-	})
+	var data []WatcherFile
+	err = json.Unmarshal([]byte(r.FormValue("watcher_files")), &data)
+	if err != nil {
+		log.Fatal("dd")
+	}
 
-	w.WriteHeader(200)
+	data[0].Key = "uploadKey"
+	data[0].ContentPath = "/jungin-kim"
+
+	var watcherFiles []ContentDto
+
+	contentDto := ContentDto{Error: 0, Message: "ok", Result: data[0]}
+
+	watcherFiles = append(watcherFiles, contentDto)
+	//watcherFiles[0] = contentDto
+
+	dto.Result = ContentsDto{ErrorCode: 0, ErrorDetail: "", WatcherFiles: watcherFiles}
+
+	fmt.Println(contentDto)
+
+	json.NewEncoder(w).Encode(dto)
+
 	return
 }
 
